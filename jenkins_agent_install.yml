@@ -1,0 +1,89 @@
+- name: Setup for jenkins agent
+  hosts: localhost
+  debugger: on_failed
+  become: true
+  tasks:
+    - include_tasks: ./tasks/java_install.yml
+      vars:
+        java_package: '{{ java_package }}'
+    
+    - include_tasks: ./tasks/services.yml
+      vars:
+        services: ["firewalld"]
+
+    - include_tasks: ./tasks/dependencies.yml
+      vars:
+        dependencies: "{{ dependencies }}"
+
+    - name: Create user for Jenkins
+      user:
+        name: jenkins
+        append: yes
+        create_home: yes
+        home: "{{ jenkins_work_dir }}/"
+        shell: /bin/false
+        state: present
+        system: yes
+
+    - name: download and place agent.jar file
+      get_url:
+        url: 'http://{{ jenkins_master_ip }}:8080/jnlpJars/agent.jar'
+        dest: "{{ jenkins_work_dir }}/"
+
+    - name: Set up for jenkins service file
+      lineinfile:
+        path: ./files/jenkins.service
+        regexp: '^{{ item.key }}'
+        insertafter: '{{ item.key }}'
+        line: '{{ item.key}}{{ item.value }}'
+      loop: 
+        - { key: 'ExecStart=', value: '{{ jenkins_work_dir }}/jenkins.sh' }
+    
+    - name: Set up for jenkins shell file
+      lineinfile:
+        path: ./files/jenkins.sh
+        regexp: '^{{ item.key }}'
+        insertafter: '{{ item.key }}'
+        line: '{{ item.key}}{{ item.value }}'
+      loop: 
+        - { key: 'JENKINS_MASTER=', value: '{{ jenkins_master_ip }}' }
+        - { key: 'JENKINS_WORK_DIR=', value: '{{ jenkins_work_dir }}' }
+        - { key: 'JENKINS_SECRET_NAME=', value: '{{ jenkins_secret }}' }
+        - { key: 'JENKINS_NODE_NAME=', value: '{{ jenkins_node_name }}' }
+    
+    - name: Copy Jenkins service file
+      copy:
+        src: ./files/jenkins.service
+        dest: /etc/systemd/system/
+        mode: 0755
+
+    - name: Copy Jenkins shell file
+      copy:
+        src: ./files/jenkins.sh
+        dest: '{{ jenkins_work_dir }}/'
+        mode: 0755
+
+    - name: Change ownership of jenkins directory
+      file:
+        path: "{{ jenkins_work_dir }}"
+        owner: jenkins
+        mode: "u+rwx,g+rx,o=rx"
+        recurse: yes
+        state: directory  
+    
+    - name: Enable traffic to port
+      firewalld:
+        port: '8080/tcp'
+        permanent: yes
+        state: enabled
+
+    - name: Enable jenkins agent service
+      systemd:
+        name: jenkins
+        daemon_reload: yes
+        enabled: yes
+
+      
+
+        
+  

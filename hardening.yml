@@ -1,0 +1,29 @@
+- hosts: localhost
+  debugger: on_failed
+  become: true
+  tasks:
+    - name: Update the system packages
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Disable traffic to ports
+      firewalld:
+        port: '{{ item }}/tcp'
+        permanent: yes
+        state: disabled
+      loop: "{{ ports_to_disable }}"
+      when: ports_to_disable is defined
+
+    - name: Disable conexion services
+      firewalld:
+        service: '{{ item }}'
+        permanent: yes
+        state: disabled
+      loop: "{{ service_to_disable|default([]) + ['ssh'] }}"
+
+    - name: Uninstall packages
+      yum:
+        name: '{{ item }}'
+        state: absent
+      loop: "{{ packages_to_uninstall|default([]) + ['ansible'] }}"

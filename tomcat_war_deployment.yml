@@ -1,0 +1,43 @@
+- name: Deploying the .war file on tomcat
+  hosts: localhost
+  debugger: on_failed
+  become: true
+  tasks:
+    - include_tasks: ./tasks/dependencies.yml
+      vars:
+        dependencies: '{{ dependencies }}'
+
+    - include_tasks: ./tasks/tomcat_install.yml
+      vars:
+        java_package: '{{ java_package }}'
+        tomcat_home: '{{ tomcat_home }}'
+        tomcat_download_url: '{{ tomcat_download_url }}'
+        server_conexion_type: '{{ server_conexion_type }}'
+        tcp_port: '{{ tcp_port }}' 
+
+    - name: download and place WAR file
+      get_url:
+        url: '{{ war_download_url }}'
+        dest: '{{ tomcat_home }}/webapps'
+
+    - name: Change ownership of tomcat directory
+      file:
+        path: '{{ tomcat_home }}'
+        owner: tomcat
+        group: tomcat
+        mode: "u+rwx,g+rx,o=rx"
+        recurse: yes
+        state: directory
+
+    # - name: Copy Tomcat service from local to remote
+    #   copy:
+    #     src: ./files/tomcat.service
+    #     dest: /etc/systemd/system/
+    #     mode: 0755
+
+    - name: Start and enable Tomcat 9 on server
+      systemd:
+        name: tomcat
+        state: restarted
+        daemon_reload: yes
+        enabled: yes

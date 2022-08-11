@@ -1,0 +1,14 @@
+#Install packages and enable hem as services
+- name: Installing Services
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ services }}"
+
+- name: Start and enable services
+  systemd:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: yes
+    enabled: yes
+  loop: "{{ services }}"

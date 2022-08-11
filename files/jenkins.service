@@ -1,0 +1,11 @@
+[Unit]
+Description=Jenkins agent init service on boot
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=jenkins
+ExecStart=
+
+[Install]
+WantedBy=multi-user.target
