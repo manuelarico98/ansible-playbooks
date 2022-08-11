@@ -15,12 +15,12 @@
       loop: "{{ ports_to_disable }}"
       when: ports_to_disable is defined
 
-    - name: Disable conexion services
-      firewalld:
-        service: '{{ item }}'
-        permanent: yes
-        state: disabled
-      loop: "{{ service_to_disable|default([]) + ['ssh'] }}"
+#    - name: Disable conexion services
+#      firewalld:
+#        service: '{{ item }}'
+#        permanent: yes
+#        state: disabled
+#      loop: "{{ service_to_disable|default([]) + ['ssh'] }}"
 
     - name: Uninstall packages
       yum:
